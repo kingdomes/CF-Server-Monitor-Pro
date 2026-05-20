@@ -28,7 +28,7 @@ export default {
         const newCols = {
           ping_ct: "TEXT DEFAULT '0'", ping_cu: "TEXT DEFAULT '0'", ping_cm: "TEXT DEFAULT '0'", ping_bd: "TEXT DEFAULT '0'",
           monthly_rx: "TEXT DEFAULT '0'", monthly_tx: "TEXT DEFAULT '0'", last_rx: "TEXT DEFAULT '0'", last_tx: "TEXT DEFAULT '0'", reset_month: "TEXT DEFAULT ''",
-          agent_os: "TEXT DEFAULT 'debian'" // 新增操作系统字段
+          agent_os: "TEXT DEFAULT 'debian'"
         };
 
         for (const [colName, colDef] of Object.entries(newCols)) {
@@ -258,7 +258,6 @@ export default {
           const isOnline = (now - s.last_updated) < 30000;
           const status = isOnline ? '<span style="color:green; font-weight:bold;">在线</span>' : '<span style="color:red; font-weight:bold;">离线</span>';
           
-          // 动态生成包含具体操作系统的 Curl 命令
           const osType = s.agent_os === 'alpine' ? 'alpine' : 'debian';
           const shellType = osType === 'alpine' ? 'sh' : 'bash';
           const cmdApp = "cur" + "l";
@@ -543,7 +542,7 @@ export default {
     }
 
     // ==========================================
-    // 一键安装脚本 (/install.sh) - 支持 Systemd 与 OpenRC，去除Bash专属语法
+    // 一键安装脚本 (/install.sh) - 完美兼容 Alpine/ash 和 Systemd/bash
     // ==========================================
     if (request.method === 'GET' && url.pathname === '/install.sh') {
       const osType = url.searchParams.get('os') || 'debian';
@@ -570,104 +569,103 @@ echo "开始安装全面增强版 CF Probe Agent (${osType === 'alpine' ? 'Alpin
 
       bashScript += `pkill -f cf-probe.sh 2>/dev/null
 
-cat << 'EOF' > /usr/local/bin/cf-probe.sh
+cat << EOF > /usr/local/bin/cf-probe.sh
 #!${sh_bin}
-SERVER_ID="$1"
-SECRET="$2"
-WORKER_URL="$3"
+SERVER_ID="$SERVER_ID"
+SECRET="$SECRET"
+WORKER_URL="$WORKER_URL"
 
-get_net_bytes() { awk 'NR>2 {rx+=\$2; tx+=\$10} END {printf "%.0f %.0f", rx, tx}' /proc/net/dev; }
-get_cpu_stat() { awk '/^cpu / {print \$2+\$3+\$4+\$5+\$6+\$7+\$8+\$9, \$5+\$6}' /proc/stat; }
+get_net_bytes() { awk 'NR>2 {rx+=\\$2; tx+=\\$10} END {printf "%.0f %.0f", rx, tx}' /proc/net/dev; }
+get_cpu_stat() { awk '/^cpu / {print \\$2+\\$3+\\$4+\\$5+\\$6+\\$7+\\$8+\\$9, \\$5+\\$6}' /proc/stat; }
 
-# 完全去除了 Bash 数组，100% 兼容 Alpine ash/dash 环境
-get_http_ping() { rtt=\$(${cmdApp} -o /dev/null -s -m 2 -w "%{time_total}" "http://\$1" 2>/dev/null | awk '{printf "%.0f", \$1*1000}'); echo "\${rtt:-0}"; }
+get_http_ping() { rtt=\\$(${cmdApp} -o /dev/null -s -m 2 -w "%{time_total}" "http://\\$1" 2>/dev/null | awk '{printf "%.0f", \\$1*1000}'); echo "\\\${rtt:-0}"; }
 
-NET_STAT=\$(get_net_bytes)
-RX_PREV=\$(echo \$NET_STAT | awk '{print \$1}')
-TX_PREV=\$(echo \$NET_STAT | awk '{print \$2}')
-if [ -z "\$RX_PREV" ]; then RX_PREV=0; fi
-if [ -z "\$TX_PREV" ]; then TX_PREV=0; fi
+NET_STAT=\\$(get_net_bytes)
+RX_PREV=\\$(echo \\$NET_STAT | awk '{print \\$1}')
+TX_PREV=\\$(echo \\$NET_STAT | awk '{print \\$2}')
+if [ -z "\\$RX_PREV" ]; then RX_PREV=0; fi
+if [ -z "\\$TX_PREV" ]; then TX_PREV=0; fi
 
-CPU_STAT=\$(get_cpu_stat)
-PREV_CPU_TOTAL=\$(echo \$CPU_STAT | awk '{print \$1}')
-PREV_CPU_IDLE=\$(echo \$CPU_STAT | awk '{print \$2}')
+CPU_STAT=\\$(get_cpu_stat)
+PREV_CPU_TOTAL=\\$(echo \\$CPU_STAT | awk '{print \\$1}')
+PREV_CPU_IDLE=\\$(echo \\$CPU_STAT | awk '{print \\$2}')
 
 LOOP_COUNT=0
 IPV4="0"; IPV6="0"
 PING_CT="0"; PING_CU="0"; PING_CM="0"; PING_BD="0"
 
 while true; do
-  if [ \$((LOOP_COUNT % 60)) -eq 0 ]; then
+  if [ \\$((LOOP_COUNT % 60)) -eq 0 ]; then
     ${cmdApp} -s -4 -m 3 https://cloudflare.com/cdn-cgi/trace 2>/dev/null | grep -q "ip=" && IPV4="1" || IPV4="0"
     ${cmdApp} -s -6 -m 3 https://cloudflare.com/cdn-cgi/trace 2>/dev/null | grep -q "ip=" && IPV6="1" || IPV6="0"
   fi
   
-  if [ \$((LOOP_COUNT % 6)) -eq 0 ]; then
-    idx=\$((LOOP_COUNT % 3))
-    case \$idx in
+  if [ \\$((LOOP_COUNT % 6)) -eq 0 ]; then
+    idx=\\$((LOOP_COUNT % 3))
+    case \\$idx in
       0) CT_NODE="bj-ct-dualstack.ip.zstaticcdn.com"; CU_NODE="bj-cu-dualstack.ip.zstaticcdn.com"; CM_NODE="bj-cm-dualstack.ip.zstaticcdn.com" ;;
       1) CT_NODE="sh-ct-dualstack.ip.zstaticcdn.com"; CU_NODE="sh-cu-dualstack.ip.zstaticcdn.com"; CM_NODE="sh-cm-dualstack.ip.zstaticcdn.com" ;;
       2) CT_NODE="gd-ct-dualstack.ip.zstaticcdn.com"; CU_NODE="gd-cu-dualstack.ip.zstaticcdn.com"; CM_NODE="gd-cm-dualstack.ip.zstaticcdn.com" ;;
     esac
-    PING_CT=\$(get_http_ping "\$CT_NODE")
-    PING_CU=\$(get_http_ping "\$CU_NODE")
-    PING_CM=\$(get_http_ping "\$CM_NODE")
-    PING_BD=\$(get_http_ping "lf3-ips.zstaticcdn.com")
+    PING_CT=\\$(get_http_ping "\\$CT_NODE")
+    PING_CU=\\$(get_http_ping "\\$CU_NODE")
+    PING_CM=\\$(get_http_ping "\\$CM_NODE")
+    PING_BD=\\$(get_http_ping "lf3-ips.zstaticcdn.com")
   fi
   
-  LOOP_COUNT=\$((LOOP_COUNT + 1))
+  LOOP_COUNT=\\$((LOOP_COUNT + 1))
 
-  OS=\$(awk -F= '/^PRETTY_NAME/{print \$2}' /etc/os-release 2>/dev/null | tr -d '"')
-  if [ -z "\$OS" ]; then OS=\$(uname -srm); fi
-  ARCH=\$(uname -m)
-  BOOT_TIME=\$(uptime -s 2>/dev/null || stat -c %y / 2>/dev/null | cut -d'.' -f1 || echo "Unknown")
-  CPU_INFO=\$(grep -m 1 'model name' /proc/cpuinfo | awk -F: '{print \$2}' | xargs | tr -d '"')
+  OS=\\$(awk -F= '/^PRETTY_NAME/{print \\$2}' /etc/os-release 2>/dev/null | tr -d '"')
+  if [ -z "\\$OS" ]; then OS=\\$(uname -srm); fi
+  ARCH=\\$(uname -m)
+  BOOT_TIME=\\$(uptime -s 2>/dev/null || stat -c %y / 2>/dev/null | cut -d'.' -f1 || echo "Unknown")
+  CPU_INFO=\\$(grep -m 1 'model name' /proc/cpuinfo | awk -F: '{print \\$2}' | xargs | tr -d '"')
   
-  CPU_STAT=\$(get_cpu_stat)
-  CPU_TOTAL=\$(echo \$CPU_STAT | awk '{print \$1}')
-  CPU_IDLE=\$(echo \$CPU_STAT | awk '{print \$2}')
-  DIFF_TOTAL=\$((CPU_TOTAL - PREV_CPU_TOTAL))
-  DIFF_IDLE=\$((CPU_IDLE - PREV_CPU_IDLE))
+  CPU_STAT=\\$(get_cpu_stat)
+  CPU_TOTAL=\\$(echo \\$CPU_STAT | awk '{print \\$1}')
+  CPU_IDLE=\\$(echo \\$CPU_STAT | awk '{print \\$2}')
+  DIFF_TOTAL=\\$((CPU_TOTAL - PREV_CPU_TOTAL))
+  DIFF_IDLE=\\$((CPU_IDLE - PREV_CPU_IDLE))
   
-  CPU=\$(awk -v t=\$DIFF_TOTAL -v i=\$DIFF_IDLE 'BEGIN {if (t<=0) print 0; else {pct=(1 - i/t)*100; if(pct<0) print 0; else if(pct>100) print 100; else printf "%.2f", pct}}')
+  CPU=\\$(awk -v t=\\$DIFF_TOTAL -v i=\\$DIFF_IDLE 'BEGIN {if (t<=0) print 0; else {pct=(1 - i/t)*100; if(pct<0) print 0; else if(pct>100) print 100; else printf "%.2f", pct}}')
   
-  PREV_CPU_TOTAL=\$CPU_TOTAL; PREV_CPU_IDLE=\$CPU_IDLE
+  PREV_CPU_TOTAL=\\$CPU_TOTAL; PREV_CPU_IDLE=\\$CPU_IDLE
   
-  MEM_INFO=\$(free -m 2>/dev/null)
-  RAM_TOTAL=\$(echo "\$MEM_INFO" | awk '/Mem:/ {print \$2}')
-  RAM_USED=\$(echo "\$MEM_INFO" | awk '/Mem:/ {print \$3}')
-  RAM=\$(awk "BEGIN {if(\$RAM_TOTAL>0) printf \\"%.2f\\", \$RAM_USED/\$RAM_TOTAL * 100.0; else print 0}")
+  MEM_INFO=\\$(free -m 2>/dev/null)
+  RAM_TOTAL=\\$(echo "\\$MEM_INFO" | awk '/Mem:/ {print \\$2}')
+  RAM_USED=\\$(echo "\\$MEM_INFO" | awk '/Mem:/ {print \\$3}')
+  RAM=\\$(awk "BEGIN {if(\\$RAM_TOTAL>0) printf \\"%.2f\\", \\$RAM_USED/\\$RAM_TOTAL * 100.0; else print 0}")
   
-  SWAP_TOTAL=\$(echo "\$MEM_INFO" | awk '/Swap:/ {print \$2}')
-  SWAP_USED=\$(echo "\$MEM_INFO" | awk '/Swap:/ {print \$3}')
-  if [ -z "\$SWAP_TOTAL" ]; then SWAP_TOTAL=0; fi
-  if [ -z "\$SWAP_USED" ]; then SWAP_USED=0; fi
+  SWAP_TOTAL=\\$(echo "\\$MEM_INFO" | awk '/Swap:/ {print \\$2}')
+  SWAP_USED=\\$(echo "\\$MEM_INFO" | awk '/Swap:/ {print \\$3}')
+  if [ -z "\\$SWAP_TOTAL" ]; then SWAP_TOTAL=0; fi
+  if [ -z "\\$SWAP_USED" ]; then SWAP_USED=0; fi
 
-  DISK_INFO=\$(df -hm / 2>/dev/null | tail -n1 | awk '{print \$2, \$3, \$5}')
-  DISK_TOTAL=\$(echo "\$DISK_INFO" | awk '{print \$1}')
-  DISK_USED=\$(echo "\$DISK_INFO" | awk '{print \$2}')
-  DISK=\$(echo "\$DISK_INFO" | awk '{print \$3}' | tr -d '%')
+  DISK_INFO=\\$(df -m / 2>/dev/null | tail -n1 | awk '{print \\$2, \\$3, \\$5}')
+  DISK_TOTAL=\\$(echo "\\$DISK_INFO" | awk '{print \\$1}')
+  DISK_USED=\\$(echo "\\$DISK_INFO" | awk '{print \\$2}')
+  DISK=\\$(echo "\\$DISK_INFO" | awk '{print \\$3}' | tr -d '%')
 
-  LOAD=\$(cat /proc/loadavg | awk '{print \$1, \$2, \$3}')
-  UPTIME=\$(uptime -p 2>/dev/null | sed 's/up //')
+  LOAD=\\$(cat /proc/loadavg | awk '{print \\$1, \\$2, \\$3}')
+  UPTIME=\\$(awk '{d=int(\\$1/86400); h=int((\\$1%86400)/3600); m=int((\\$1%3600)/60); if(d>0) printf "%d days, %02d:%02d\\n", d, h, m; else printf "%02d:%02d\\n", h, m}' /proc/uptime)
   
-  PROCESSES=\$(ps -e 2>/dev/null | wc -l)
-  TCP_CONN=\$(ss -ant 2>/dev/null | grep -v State | wc -l || netstat -ant 2>/dev/null | grep -v Active | wc -l)
-  UDP_CONN=\$(ss -anu 2>/dev/null | grep -v State | wc -l || netstat -anu 2>/dev/null | grep -v Active | wc -l)
+  PROCESSES=\\$(ps -e 2>/dev/null | wc -l)
+  TCP_CONN=\\$(ss -ant 2>/dev/null | grep -v State | wc -l || netstat -ant 2>/dev/null | grep -v Active | wc -l)
+  UDP_CONN=\\$(ss -anu 2>/dev/null | grep -v State | wc -l || netstat -anu 2>/dev/null | grep -v Active | wc -l)
   
-  NET_STAT=\$(get_net_bytes)
-  RX_NOW=\$(echo \$NET_STAT | awk '{print \$1}')
-  TX_NOW=\$(echo \$NET_STAT | awk '{print \$2}')
-  if [ -z "\$RX_NOW" ]; then RX_NOW=0; fi
-  if [ -z "\$TX_NOW" ]; then TX_NOW=0; fi
+  NET_STAT=\\$(get_net_bytes)
+  RX_NOW=\\$(echo \\$NET_STAT | awk '{print \\$1}')
+  TX_NOW=\\$(echo \\$NET_STAT | awk '{print \\$2}')
+  if [ -z "\\$RX_NOW" ]; then RX_NOW=0; fi
+  if [ -z "\\$TX_NOW" ]; then TX_NOW=0; fi
 
-  RX_SPEED=\$(((RX_NOW - RX_PREV) / 5))
-  TX_SPEED=\$(((TX_NOW - TX_PREV) / 5))
-  RX_PREV=\$RX_NOW; TX_PREV=\$TX_NOW
+  RX_SPEED=\\$(((RX_NOW - RX_PREV) / 5))
+  TX_SPEED=\\$(((TX_NOW - TX_PREV) / 5))
+  RX_PREV=\\$RX_NOW; TX_PREV=\\$TX_NOW
   
-  PAYLOAD="{\\"id\\": \\"\$SERVER_ID\\", \\"secret\\": \\"\$SECRET\\", \\"metrics\\": { \\"cpu\\": \\"\$CPU\\", \\"ram\\": \\"\$RAM\\", \\"ram_total\\": \\"\$RAM_TOTAL\\", \\"ram_used\\": \\"\$RAM_USED\\", \\"swap_total\\": \\"\$SWAP_TOTAL\\", \\"swap_used\\": \\"\$SWAP_USED\\", \\"disk\\": \\"\$DISK\\", \\"disk_total\\": \\"\$DISK_TOTAL\\", \\"disk_used\\": \\"\$DISK_USED\\", \\"load\\": \\"\$LOAD\\", \\"uptime\\": \\"\$UPTIME\\", \\"boot_time\\": \\"\$BOOT_TIME\\", \\"net_rx\\": \\"\$RX_NOW\\", \\"net_tx\\": \\"\$TX_NOW\\", \\"net_in_speed\\": \\"\$RX_SPEED\\", \\"net_out_speed\\": \\"\$TX_SPEED\\", \\"os\\": \\"\$OS\\", \\"arch\\": \\"\$ARCH\\", \\"cpu_info\\": \\"\$CPU_INFO\\", \\"processes\\": \\"\$PROCESSES\\", \\"tcp_conn\\": \\"\$TCP_CONN\\", \\"udp_conn\\": \\"\$UDP_CONN\\", \\"ip_v4\\": \\"\$IPV4\\", \\"ip_v6\\": \\"\$IPV6\\", \\"ping_ct\\": \\"\$PING_CT\\", \\"ping_cu\\": \\"\$PING_CU\\", \\"ping_cm\\": \\"\$PING_CM\\", \\"ping_bd\\": \\"\$PING_BD\\" }}"
+  PAYLOAD="{\\"id\\": \\"\\$SERVER_ID\\", \\"secret\\": \\"\\$SECRET\\", \\"metrics\\": { \\"cpu\\": \\"\\$CPU\\", \\"ram\\": \\"\\$RAM\\", \\"ram_total\\": \\"\\$RAM_TOTAL\\", \\"ram_used\\": \\"\\$RAM_USED\\", \\"swap_total\\": \\"\\$SWAP_TOTAL\\", \\"swap_used\\": \\"\\$SWAP_USED\\", \\"disk\\": \\"\\$DISK\\", \\"disk_total\\": \\"\\$DISK_TOTAL\\", \\"disk_used\\": \\"\\$DISK_USED\\", \\"load\\": \\"\\$LOAD\\", \\"uptime\\": \\"\\$UPTIME\\", \\"boot_time\\": \\"\\$BOOT_TIME\\", \\"net_rx\\": \\"\\$RX_NOW\\", \\"net_tx\\": \\"\\$TX_NOW\\", \\"net_in_speed\\": \\"\\$RX_SPEED\\", \\"net_out_speed\\": \\"\\$TX_SPEED\\", \\"os\\": \\"\\$OS\\", \\"arch\\": \\"\\$ARCH\\", \\"cpu_info\\": \\"\\$CPU_INFO\\", \\"processes\\": \\"\\$PROCESSES\\", \\"tcp_conn\\": \\"\\$TCP_CONN\\", \\"udp_conn\\": \\"\\$UDP_CONN\\", \\"ip_v4\\": \\"\\$IPV4\\", \\"ip_v6\\": \\"\\$IPV6\\", \\"ping_ct\\": \\"\\$PING_CT\\", \\"ping_cu\\": \\"\\$PING_CU\\", \\"ping_cm\\": \\"\\$PING_CM\\", \\"ping_bd\\": \\"\\$PING_BD\\" }}"
   
-  ${cmdApp} -s -X POST -H "Content-Type: application/json" -d "\$PAYLOAD" "\$WORKER_URL" > /dev/null
+  ${cmdApp} -s -X POST -H "Content-Type: application/json" -d "\\$PAYLOAD" "\\$WORKER_URL" > /dev/null
   sleep 5
 done
 EOF
@@ -682,7 +680,6 @@ chmod +x /usr/local/bin/cf-probe.sh
 #!/sbin/openrc-run
 name="cf-probe"
 command="/usr/local/bin/cf-probe.sh"
-command_args="$SERVER_ID $SECRET $WORKER_URL"
 command_background="yes"
 pidfile="/run/cf-probe.pid"
 EOF
@@ -700,7 +697,7 @@ Description=Cloudflare Worker Probe Agent
 After=network.target
 
 [Service]
-ExecStart=/usr/local/bin/cf-probe.sh $SERVER_ID $SECRET $WORKER_URL
+ExecStart=/usr/local/bin/cf-probe.sh
 Restart=always
 User=root
 

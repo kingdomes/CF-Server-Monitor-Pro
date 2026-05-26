@@ -41,16 +41,25 @@ alpine测试版本，已支持alpine系统挂载探针
 ## 📸 界面预览
 
 ### 1. 前台多节点大盘与全局统计
-<img width="3994" height="1830" alt="image" src="https://github.com/user-attachments/assets/e993f66e-7d3f-4481-ab02-e37edb63a7a1" />
+<img width="3840" height="1738" alt="image" src="https://github.com/user-attachments/assets/0b29ab7d-0f94-4bfd-82fb-0e64d8bf1c6a" />
+<img width="3840" height="1738" alt="image" src="https://github.com/user-attachments/assets/1d912717-0897-489d-a4d0-1f08a97c63b4" />
+<img width="3840" height="1738" alt="image" src="https://github.com/user-attachments/assets/fd115737-0bd0-4e7f-bc6c-bd141e4c22bf" />
+
+
+
 
 
 ### 2. 单节点实时性能折线图
-<img width="3971" height="1759" alt="image" src="https://github.com/user-attachments/assets/46567b0a-acf0-426e-b68a-58402aeff955" />
-<img width="3971" height="1759" alt="image" src="https://github.com/user-attachments/assets/668b1dec-f9bf-4b4b-b703-d1398671ed10" />
+<img width="3840" height="1738" alt="image" src="https://github.com/user-attachments/assets/81ce19c3-7554-4dd1-818a-7ca478d3eb0d" />
+<img width="3840" height="1738" alt="image" src="https://github.com/user-attachments/assets/5bacbf4f-2017-436a-a0b8-fe1812f9b3c3" />
+
 
 
 ### 3. 后台管理与全局设置
-<img width="3971" height="1759" alt="image" src="https://github.com/user-attachments/assets/f481c42c-215f-42a4-9183-dc7250628842" />
+<img width="3840" height="1738" alt="image" src="https://github.com/user-attachments/assets/9d4d21de-6f2a-4980-9b0c-c9850f1e1223" />
+<img width="3840" height="1738" alt="image" src="https://github.com/user-attachments/assets/f90c7c96-e145-49e9-889b-3e22d06af464" />
+<img width="3840" height="1738" alt="image" src="https://github.com/user-attachments/assets/c6989909-0ce7-4cc1-87e6-65d87e4ea48b" />
+
 
 
 ---

@@ -244,6 +244,17 @@ export default {
       .custom-map-badge div { background-color: #10b981; color: white; border-radius: 50%; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: bold; border: 2px solid white; box-shadow: 0 2px 6px rgba(0,0,0,0.4); }
       .view-panel { display: none; } .view-panel.active { display: block; animation: fadeIn 0.3s ease; }
       @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+      
+      /* 新增的堆叠卡片样式 */
+      .stat-group { display: flex; flex-direction: column; margin-bottom: 8px; }
+      .stat-header { display: flex; justify-content: space-between; font-size: 12px; font-weight: 600; margin-bottom: 4px; color: inherit; }
+      .stat-bar-full { width: 100%; height: 6px; background: rgba(150, 150, 150, 0.2); border-radius: 3px; overflow: hidden; }
+      .stat-bar-full > div { height: 100%; border-radius: 3px; transition: width 0.3s; }
+      .stat-subtext { font-size: 11px; color: #6b7280; margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .theme2 .stat-subtext, .theme4 .stat-subtext, .theme5 .stat-subtext { color: rgba(255,255,255,0.6); }
+      .theme5 .stat-bar-full { border: 1px solid #f0f; background: #222; border-radius: 0; }
+      .theme5 .stat-bar-full > div { border-radius: 0; box-shadow: 0 0 5px #0ff; }
+      .card-right { flex: 1; display: flex; flex-direction: column; justify-content: center; padding-left: 15px; border-left: 1px solid rgba(150,150,150,0.1); min-width: 0; }
     `;
 
     // ==========================================
@@ -1175,8 +1186,11 @@ echo "✅ Linux 探针安装成功！"
             const isOnline = (now - server.last_updated) < 30000;
             const statusColor = isOnline ? '#10b981' : '#ef4444'; 
             
-            const cpu = server.cpu || '0'; const ram = server.ram || '0'; const disk = server.disk || '0';
-            const netInSpeed = formatBytes(server.net_in_speed); const netOutSpeed = formatBytes(server.net_out_speed);
+            const cpu = parseFloat(server.cpu || '0').toFixed(1); 
+            const ram = parseFloat(server.ram || '0').toFixed(1); 
+            const disk = parseFloat(server.disk || '0').toFixed(1);
+            const netInSpeed = formatBytes(server.net_in_speed); 
+            const netOutSpeed = formatBytes(server.net_out_speed);
             
             const cCode = (server.country || 'xx').toLowerCase();
             const flagHtml = cCode !== 'xx' ? `<img src="https://flagcdn.com/24x18/${cCode}.png" alt="${cCode}" style="vertical-align: sub; margin-right: 5px; border-radius: 2px;">` : '🏳️';
@@ -1197,10 +1211,15 @@ echo "✅ Linux 探针安装成功！"
               metaHtml += `<div class="card-meta" style="${sys.show_price !== 'true' ? 'margin-top:8px;' : ''}">剩余天数: ${expireText}</div>`;
             }
 
-            // 新增：单机 上传/下载 流量统计
+            // 流量统计
             const rx_val_str = formatBytes(sys.auto_reset_traffic === 'true' ? parseFloat(server.monthly_rx || 0) : parseFloat(server.net_rx || 0));
             const tx_val_str = formatBytes(sys.auto_reset_traffic === 'true' ? parseFloat(server.monthly_tx || 0) : parseFloat(server.net_tx || 0));
             metaHtml += `<div class="card-meta" style="${sys.show_price !== 'true' && sys.show_expire !== 'true' ? 'margin-top:8px;' : ''}">流量: <span style="color:#10b981">↓</span> ${rx_val_str} | <span style="color:#3b82f6">↑</span> ${tx_val_str}</div>`;
+            
+            // 在线时间与更新时间
+            const diffSec = Math.round((now - server.last_updated) / 1000);
+            let upTimeFormat = (server.uptime || '-').replace('days', '天').replace('day', '天');
+            metaHtml += `<div class="card-meta" style="margin-top:2px;">在线: ${upTimeFormat} | 更新: ${diffSec}s前</div>`;
 
             let badgesHtml = '';
             if (sys.show_bw === 'true' && server.bandwidth) badgesHtml += `<span class="badge badge-bw">${server.bandwidth}</span>`;
@@ -1209,6 +1228,12 @@ echo "✅ Linux 探针安装成功！"
             if (server.ip_v6 === '1') badgesHtml += `<span class="badge badge-v6">IPv6</span>`;
 
             const pingHtml = `<div class="ping-box"><span>电信 <span style="color:${getColor(server.ping_ct)}; font-weight:bold;">${server.ping_ct === '0' ? '超时' : server.ping_ct + 'ms'}</span></span><span>联通 <span style="color:${getColor(server.ping_cu)}; font-weight:bold;">${server.ping_cu === '0' ? '超时' : server.ping_cu + 'ms'}</span></span><span>移动 <span style="color:${getColor(server.ping_cm)}; font-weight:bold;">${server.ping_cm === '0' ? '超时' : server.ping_cm + 'ms'}</span></span><span>字节 <span style="color:${getColor(server.ping_bd)}; font-weight:bold;">${server.ping_bd === '0' ? '超时' : server.ping_bd + 'ms'}</span></span></div>`;
+
+            // 处理容量的显示 (假设从 agent 获取的单位是 MB，需要乘上 1024*1024 再格式化)
+            const ramUsedStr = formatBytes((parseFloat(server.ram_used || 0) * 1048576).toString());
+            const ramTotalStr = formatBytes((parseFloat(server.ram_total || 0) * 1048576).toString());
+            const diskUsedStr = formatBytes((parseFloat(server.disk_used || 0) * 1048576).toString());
+            const diskTotalStr = formatBytes((parseFloat(server.disk_total || 0) * 1048576).toString());
 
             cardContentHtml += `
               <a href="/?id=${server.id}" class="vps-card">
@@ -1223,14 +1248,32 @@ echo "✅ Linux 探针安装成功！"
                 </div>
                 
                 <div class="card-right">
-                  <div class="card-right-row">
-                    <div class="stat-col"><div class="stat-label">CPU</div><div class="stat-val">${cpu}%</div><div class="stat-bar"><div style="width:${cpu}%;"></div></div></div>
-                    <div class="stat-col"><div class="stat-label">内存</div><div class="stat-val">${ram}%</div><div class="stat-bar"><div style="width:${ram}%; background:#f59e0b;"></div></div></div>
-                    <div class="stat-col"><div class="stat-label">存储</div><div class="stat-val">${disk}%</div><div class="stat-bar"><div style="width:${disk}%; background:#10b981;"></div></div></div>
+                  <div class="stat-group">
+                    <div class="stat-header"><span>CPU</span><span style="color: ${cpu > 80 ? '#ef4444' : 'inherit'};">${cpu}%</span></div>
+                    <div class="stat-bar-full"><div style="width:${cpu}%; background: ${cpu > 80 ? '#ef4444' : '#3b82f6'};"></div></div>
+                    <div class="stat-subtext" title="${server.cpu_info || '-'}">${server.cpu_info || '-'}</div>
                   </div>
-                  <div class="card-right-row" style="padding-top: 4px; justify-content: space-around;">
-                    <div class="stat-col"><div class="stat-label">上传</div><div class="stat-val">${netOutSpeed}/s</div></div>
-                    <div class="stat-col"><div class="stat-label">下载</div><div class="stat-val">${netInSpeed}/s</div></div>
+                  
+                  <div class="stat-group">
+                    <div class="stat-header"><span>内存</span><span style="color: ${ram > 80 ? '#ef4444' : 'inherit'};">${ram}%</span></div>
+                    <div class="stat-bar-full"><div style="width:${ram}%; background: ${ram > 80 ? '#ef4444' : '#10b981'};"></div></div>
+                    <div class="stat-subtext">${ramUsedStr} / ${ramTotalStr}</div>
+                  </div>
+
+                  <div class="stat-group">
+                    <div class="stat-header"><span>存储</span><span style="color: ${disk > 80 ? '#ef4444' : 'inherit'};">${disk}%</span></div>
+                    <div class="stat-bar-full"><div style="width:${disk}%; background: ${disk > 80 ? '#ef4444' : '#10b981'};"></div></div>
+                    <div class="stat-subtext">${diskUsedStr} / ${diskTotalStr}</div>
+                  </div>
+                  
+                  <div style="display: flex; justify-content: space-between; font-size: 11px; color: #888; margin-top: 2px;">
+                    <div style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-right: 5px;" title="${server.os || '-'} ${server.arch || '-'}">${server.os || '-'} ${server.arch || '-'}</div>
+                    <div style="white-space: nowrap; flex-shrink: 0;">TCP/UDP: ${server.tcp_conn || '0'} / ${server.udp_conn || '0'}</div>
+                  </div>
+                  
+                  <div style="display: flex; justify-content: space-between; font-size: 11px; color: #888; margin-top: 4px;">
+                    <div><span style="color:#10b981">↓</span> ${netInSpeed}/s</div>
+                    <div><span style="color:#3b82f6">↑</span> ${netOutSpeed}/s</div>
                   </div>
                 </div>
               </a>
@@ -1301,14 +1344,6 @@ echo "✅ Linux 探针安装成功！"
           .card-badges { margin-top: 10px; display: flex; gap: 5px; flex-wrap: wrap; }
           .badge { padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: 600; color: white; }
           .badge-bw { background: #3b82f6; } .badge-tf { background: #10b981; } .badge-v4 { background: #a855f7; } .badge-v6 { background: #ec4899; }
-          
-          .card-right { flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 12px; padding-left: 15px; border-left: 1px solid #f0f0f0; }
-          .card-right-row { display: flex; width: 100%; justify-content: space-between; align-items: center; }
-          .stat-col { display: flex; flex-direction: column; align-items: center; flex: 1; padding: 0 2px; }
-          .stat-label { font-size: 11px; color: #888; margin-bottom: 8px; white-space: nowrap; }
-          .stat-val { font-size: 12px; font-weight: 600; color: #111; margin-bottom: 6px; white-space: nowrap; }
-          .stat-bar { width: 100%; height: 3px; background: #e5e7eb; border-radius: 2px; overflow: hidden; }
-          .stat-bar > div { height: 100%; background: #3b82f6; border-radius: 2px; transition: width 0.3s; }
           
           .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
           .admin-btn { padding: 8px 16px; background: #3b82f6; color: white; text-decoration: none; border-radius: 6px; font-size: 14px; font-weight:bold; }

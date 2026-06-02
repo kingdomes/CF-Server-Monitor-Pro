@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>{{SITE_TITLE}}</title>
+  {{CUSTOM_HEAD}}
+  <style>{{THEME_STYLES}}</style>
+  </head>
+<body class="{{THEME_CLASS}}">
+  <div class="container">
+    <div class="header">
+      <h1 style="margin:0;">{{SITE_TITLE}}</h1>
+      <a href="/admin" class="admin-btn">后台管理</a>
+    </div>
+
+    <div id="vps-cards-container">Loading servers...</div>
+  </div>
+
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+       const data = window.__PANEL_DATA__;
+       const servers = data.servers || [];
+       const container = document.getElementById('vps-cards-container');
+       
+       if (servers.length === 0) {
+           container.innerHTML = '<p>暂无服务器数据</p>';
+           return;
+       }
+
+       let html = '';
+       servers.forEach(server => {
+           // 前端动态计算 CPU、内存等并渲染 HTML (完全卸载 Worker 的压力)
+           html += `
+             <div class="vps-card">
+               <h3>${server.name}</h3>
+               <p>CPU: ${server.cpu}% | RAM: ${server.ram}%</p>
+               <p>网络: ${server.net_in_speed}/s ↓</p>
+             </div>
+           `;
+       });
+       container.innerHTML = html;
+    });
+  </script>
+</body>
+</html>

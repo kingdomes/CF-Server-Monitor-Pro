@@ -1,45 +1,34 @@
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <title>{{SITE_TITLE}}</title>
-  {{CUSTOM_HEAD}}
-  <style>{{THEME_STYLES}}</style>
-  </head>
-<body class="{{THEME_CLASS}}">
-  <div class="container">
-    <div class="header">
-      <h1 style="margin:0;">{{SITE_TITLE}}</h1>
-      <a href="/admin" class="admin-btn">后台管理</a>
-    </div>
-
-    <div id="vps-cards-container">Loading servers...</div>
+<div class="consensus-panel" id="web3-dashboard">
+  <div><div class="c-label">最新区块高度 (已终局)</div><div class="c-val"># <span id="ui-height">{{HEIGHT}}</span></div></div>
+  <div>
+    <div class="c-label">Slot 出块倒计时</div>
+    <div class="c-val"><span id="ui-ticker">10.0</span> s</div>
+    <div class="ticker-bar"><div class="ticker-fill" id="ui-ticker-bar"></div></div>
   </div>
+  <div><div class="c-label">终局见证人</div><div class="c-val" style="font-size:13px;" id="ui-proposer">{{PROPOSER}}</div></div>
+  <div><div class="c-label">信标 / 全网节点数</div><div class="c-val"><span id="ui-beacons">{{BEACONS}}</span> / <span id="ui-nodes">{{NODES}}</span></div></div>
+</div>
 
-  <script>
-    document.addEventListener("DOMContentLoaded", () => {
-       const data = window.__PANEL_DATA__;
-       const servers = data.servers || [];
-       const container = document.getElementById('vps-cards-container');
-       
-       if (servers.length === 0) {
-           container.innerHTML = '<p>暂无服务器数据</p>';
-           return;
-       }
+<div class="global-stats" style="margin-bottom:15px;">
+  <div class="g-item"><div class="g-label">全网综合排名 / 内存池待打包</div><div class="g-val">🏆 第 <a href="javascript:void(0)" onclick="document.getElementById('rankModal').style.display='block'" style="color:#f59e0b; text-decoration:underline; cursor:pointer;" id="ui-rank">{{LOCAL_RANK}}</a> 名 | <span style="color:#8b5cf6;" id="ui-pending-txs">{{PENDING_TXS}}</span> 笔</div></div>
+  <div class="g-item"><div class="g-label">全网探针总资产重力</div><div class="g-val">💰 <span id="ui-net-asset">{{GLOBAL_NET_ASSET}}</span> CNY</div></div>
+</div>
 
-       let html = '';
-       servers.forEach(server => {
-           // 前端动态计算 CPU、内存等并渲染 HTML (完全卸载 Worker 的压力)
-           html += `
-             <div class="vps-card">
-               <h3>${server.name}</h3>
-               <p>CPU: ${server.cpu}% | RAM: ${server.ram}%</p>
-               <p>网络: ${server.net_in_speed}/s ↓</p>
-             </div>
-           `;
-       });
-       container.innerHTML = html;
-    });
-  </script>
-</body>
-</html>
+<div class="filter-bar" id="ajax-filters">{{FILTERS_HTML}}</div>
+<div class="global-stats" id="ajax-stats">
+  <div class="g-item"><div class="g-label">本站服务器总数</div><div class="g-val">{{TOTAL_VPS}}</div></div>
+  <div class="g-item"><div class="g-label">总计流量</div><div class="g-val">{{TOTAL_RX}} | {{TOTAL_TX}}</div></div>
+</div>
+
+<div id="view-card" class="view-panel active"><div id="ajax-cards">{{CARDS_HTML}}</div></div>
+<div id="view-table" class="view-panel"><div class="table-responsive"><table class="custom-table"><thead><tr><th>状态</th><th>节点名称</th><th>地区</th><th>系统</th><th>CPU</th><th>内存</th><th>磁盘</th><th>流量</th><th>下行</th><th>上行</th><th>更新</th></tr></thead><tbody id="ajax-table">{{TABLE_HTML}}</tbody></table></div></div>
+<div id="view-map" class="view-panel"><div id="map-container"></div></div>
+
+<div id="view-block" class="view-panel">
+  <div class="asset-radar"><input type="text" id="radar-input" placeholder="输入 EVM 钱包地址 (0x...)"><button onclick="executeSearch()">🔍 查询资产</button></div>
+  <div id="ui-balance-result" style="display:none; padding:15px; margin-bottom:20px; background:rgba(16,185,129,0.1); border-radius:8px;"></div>
+  <div class="block-dashboard-layout">
+      <div class="table-responsive" style="background:white; border-radius:12px; padding:10px;"><table class="custom-table"><thead><tr><th>区块高度 (Slot)</th><th>出块见证人</th><th>区块哈希</th><th>总难度</th><th>交易数</th><th>时间</th></tr></thead><tbody id="table-blocks-body">{{BLOCKS_HTML}}</tbody></table></div>
+      <div class="rich-list-card"><h3>🏆 Cycle 财富英雄榜</h3><table class="custom-table"><tbody id="ajax-richlist">{{RICHLIST_HTML}}</tbody></table></div>
+  </div>
+</div>

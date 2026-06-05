@@ -5,7 +5,7 @@
 
 ## 📸 界面预览
 
-演示站点：https://tanzhen.kejikkk.com
+演示站点：https://still-cell-000f.a6856191801.workers.dev
 
 已添加支持alpine系统挂载探针，已个性化CSS设置，已添加网易云外链单曲循环，可通过CSS代码实现个性化探针主题实现
 
